@@ -58,6 +58,7 @@
       : opts.allowedAffixes)];
     if (pool.some(id => !allIds.includes(id))) throw new Error('勾选列表包含无效的普通词条');
     const active = before.map((s, i) => s ? i : -1).filter(i => i >= 0);
+    const editable = Array.isArray(opts.onlySlots) ? active.filter(i => opts.onlySlots.includes(i)) : active;
     const freePositions = slot => [0, 1, 2, 3].filter(i => !isRare(slot.subs[i]));
     const needsNormals = active.some(i => freePositions(before[i]).length);
     if (needsNormals && !pool.length) throw new Error('请至少勾选一种普通词条');
@@ -92,7 +93,7 @@
     const passes = Math.max(1, Math.min(12, opts.maxPass || 6));
     for (let pass = 0; pass < passes; pass++) {
       let improved = false;
-      for (const index of active) {
+      for (const index of editable) {
         const slotsToFill = freePositions(before[index]).length;
         let bestSlot = cur[index], bestValue = currentValue;
         for (const words of combinations(pool, Math.min(slotsToFill, pool.length))) {
