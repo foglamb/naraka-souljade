@@ -1,7 +1,14 @@
 # =============================================================================
-# 纯静态站：GitHub Pages 自动部署
-# push 到 main 即构建并发布，产物地址 = https://<user>.github.io/<repo>/
-# 仓库里没有构建步骤，直接把根目录当静态站点上传
+# 纯静态站 · GitHub Pages 自动部署
+# -----------------------------------------------------------------------------
+# 触发：push 到 main（或手动 workflow_dispatch）
+# 做法：把「站点文件」推到 gh-pages 分支，Pages 已绑定该分支 → 自动重建
+# 产物：https://<user>.github.io/<repo>/
+#
+# 为什么不用 actions/deploy-pages：
+#   那条路要求 workflow 自己创建 Pages 站点（POST /repos/:r/pages），
+#   GITHUB_TOKEN 需要额外授权；fine-grained PAT 也常缺 pages 权限。
+#   推 gh-pages 分支只要 contents:write，最稳。
 # =============================================================================
 name: Deploy static site to Pages
 
@@ -11,9 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -22,30 +27,38 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true          # 首次运行自动开启 Pages，免手工点设置
-
-      - name: Sanity check (no build step, just verify entry exists)
+      - name: Sanity check
         run: |
-          test -f index.html || { echo "index.html 缺失"; exit 1; }
-          test -f ext/nsj-ext-core.js || { echo "二改扩展缺失"; exit 1; }
+          set -e
+          test -f index.html                       || { echo "::error::index.html 缺失"; exit 1; }
+          for f in app.js data.js styles.css; do
+            test -f "$f" || { echo "::error::$f 缺失"; exit 1; }
+          done
+          for f in ext/nsj-ext-core.js ext/nsj-ext-store.js ext/nsj-ext-optimizer.js ext/nsj-ext-ui.js ext/nsj-ext.css; do
+            test -f "$f" || { echo "::error::二改扩展缺失 $f"; exit 1; }
+          done
           echo "静态文件清单："
-          ls -1 *.html *.js *.css | sed 's/^/  /'
+          ls -1 *.html *.js *.css ext/* | sed 's/^/  /'
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Assemble site (只挑站点需要的文件)
+        run: |
+          set -e
+          rm -rf _site && mkdir -p _site
+          cp index.html app.js data.js styles.css _site/
+          cp -r assets ext _site/
+          touch _site/.nojekyll
+          du -sh _site
+          find _site -type f | wc -l
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: .
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./_site
+          force_orphan: false
+          commit_message: "deploy: ${{ github.sha }}"
