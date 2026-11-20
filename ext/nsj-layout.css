@@ -1,0 +1,402 @@
+/* =========================================================================
+ * 二改 v2.1 · 单屏布局（UI Redo）
+ * -------------------------------------------------------------------------
+ * 目标：不滚动就能完成「选玉 → 调词条 → 看结果」。
+ *
+ * 做法：
+ *   · 顶栏压成一行（44px），工具栏收进「更多」菜单
+ *   · 主区改为 3 段式标签：配置 / 结果 / 对比 —— 一次只看一屏
+ *   · 配置页：左「魂玉池」（横向网格）｜中「槽位」（横向 7 格）｜右「词条抽屉」
+ *   · 全部区域用 flex + min-height:0 约束，内部各自滚动，页面本身不滚
+ *   · 窄屏 <980px 自动降级为纵向三段，仍保持各自内滚
+ * ========================================================================= */
+
+/* ---------------- 全局：禁页面滚动 ---------------- */
+html, body{
+  height:100%;
+  overflow:hidden;
+}
+body{
+  display:flex;
+  flex-direction:column;
+  padding-bottom:0;
+}
+
+/* ---------------- 顶栏：一行压扁 ---------------- */
+.topbar{
+  flex:0 0 auto;
+  display:flex; align-items:center; gap:10px;
+  padding:7px clamp(10px,2vw,16px);
+  min-height:44px;
+  border-bottom:1px solid var(--line-soft);
+  background:linear-gradient(180deg, rgba(var(--accent-rgb),.07), transparent);
+  position:relative; z-index:30;
+}
+.logo{ width:28px; height:28px; flex:0 0 28px; font-size:14px; border-radius:8px; }
+.brand{ gap:8px; min-width:0; }
+.brand-text h1{ font-size:13px; white-space:nowrap; }
+.brand-text .sub{ display:none; }
+
+.topbar-actions{
+  margin-left:auto;
+  display:flex; align-items:center; gap:5px; flex-wrap:nowrap;
+}
+.topbar-actions .btn{
+  padding:4px 9px; font-size:11.5px; border-radius:7px;
+  white-space:nowrap;
+}
+.topbar-actions .btn .cnt{
+  display:inline-block; min-width:14px; padding:0 4px; margin-left:4px;
+  border-radius:7px; font-size:10px; line-height:14px;
+  background:rgba(var(--accent-rgb),.22); color:var(--accent);
+}
+
+/* 「更多」菜单：把导出/导入/清空收起来 */
+.more-wrap{ position:relative; }
+.more-menu{
+  position:absolute; right:0; top:calc(100% + 6px);
+  min-width:132px; padding:5px; display:none;
+  background:linear-gradient(180deg,#101d2b,#0a1420);
+  border:1px solid var(--line); border-radius:10px;
+  box-shadow:var(--shadow); z-index:40;
+}
+.more-menu.open{ display:block; }
+.more-menu button{
+  display:block; width:100%; text-align:left;
+  padding:7px 10px; border-radius:7px; font-size:12px;
+  background:none; border:0; color:var(--text-2); cursor:pointer;
+}
+.more-menu button:hover{ background:rgba(var(--accent-rgb),.14); color:var(--accent-text); }
+.more-menu button.danger:hover{ background:rgba(255,139,156,.16); color:#ff8b9c; }
+.more-menu hr{ margin:4px 2px; border:0; border-top:1px solid var(--line-soft); }
+
+/* ---------------- 主标签：配置 / 结果 / 对比 ---------------- */
+.worktabs{
+  flex:0 0 auto;
+  display:flex; gap:4px; align-items:center;
+  padding:6px clamp(10px,2vw,16px) 0;
+  border-bottom:1px solid var(--line-soft);
+}
+.worktab{
+  position:relative;
+  padding:7px 15px 9px; cursor:pointer;
+  font-size:12.5px; color:var(--text-3);
+  background:none; border:0; border-radius:8px 8px 0 0;
+  transition:.15s; white-space:nowrap;
+}
+.worktab:hover{ color:var(--text); background:rgba(var(--accent-rgb),.06); }
+.worktab.active{
+  color:var(--accent-text);
+  background:linear-gradient(180deg, rgba(var(--accent-rgb),.20), rgba(var(--accent-rgb),.04));
+  box-shadow:inset 0 -2px 0 var(--accent);
+}
+.worktab .badge{
+  display:inline-block; min-width:15px; padding:0 4px; margin-left:5px;
+  border-radius:7px; font-size:10px; line-height:15px;
+  background:rgba(var(--accent-rgb),.22); color:var(--accent);
+}
+.worktab-spacer{ flex:1; }
+.worktab-hint{ font-size:11px; color:var(--text-3); padding-right:2px; }
+
+/* ---------------- 主工作区：一次只显示一屏 ---------------- */
+.workspace{
+  flex:1 1 auto; min-height:0;
+  display:flex; overflow:hidden;
+  padding:clamp(8px,1.2vw,14px);
+  gap:clamp(8px,1.2vw,14px);
+}
+.view{ display:none; flex:1 1 auto; min-height:0; min-width:0; gap:inherit; }
+.view.active{ display:flex; }
+
+/* ---------------- 视图 A：配置（三列，各自内滚） ---------------- */
+.view-build{ display:none; }
+.view-build.active{
+  display:grid;
+  grid-template-columns:minmax(196px,.72fr) minmax(0,1.75fr) minmax(268px,.92fr);
+  align-items:stretch;
+}
+
+.pane{
+  display:flex; flex-direction:column; min-height:0; min-width:0;
+  background:linear-gradient(180deg, var(--panel), var(--panel-2));
+  border:1px solid var(--line-soft); border-radius:var(--r-lg);
+  box-shadow:0 6px 26px rgba(0,14,30,.42);
+  overflow:hidden;
+}
+.pane-head{
+  flex:0 0 auto;
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:8px 11px;
+  border-bottom:1px solid var(--line-soft);
+  background:linear-gradient(180deg, rgba(var(--accent-rgb),.09), transparent);
+}
+.pane-head h2{ font-size:12px; color:var(--accent); display:flex; align-items:center; gap:6px; }
+.pane-head h2::before{
+  content:''; width:3px; height:12px; border-radius:2px;
+  background:linear-gradient(180deg,var(--accent),transparent);
+}
+.pane-head .hint{ font-size:10.5px; color:var(--text-3); }
+.pane-body{ flex:1 1 auto; min-height:0; overflow-y:auto; }
+
+/* 魂玉池：紧凑网格 */
+.pool-tools{ padding:8px 10px 6px; display:grid; gap:7px; }
+#searchInput{ padding:6px 10px 6px 28px; font-size:12px; border-radius:7px; }
+.search-icon{ left:9px; font-size:13px; }
+.chips{ gap:4px; }
+.chip{ padding:2px 9px; font-size:11px; border-radius:999px; }
+
+.pool-list{
+  padding:8px 10px 12px;
+  display:grid; gap:5px;
+  max-height:none; overflow:visible;
+}
+.pool-card{
+  grid-template-columns:34px minmax(0,1fr) auto;
+  gap:8px; padding:5px 8px; border-radius:9px;
+}
+.pool-card img{ width:34px; height:34px; border-radius:7px; }
+.pc-brief{ display:none; }          /* 池里只留名字，点开右侧抽屉看效果 */
+.pc-name{ font-size:12px; }
+.pc-score{ font-size:11px; }
+.tag{ font-size:9.5px; padding:0 5px; line-height:15px; }
+
+/* 槽位：2 列紧凑卡，自身内滚（页面不再滚） */
+.slots{
+  flex:1 1 auto; min-height:0; overflow-y:auto;
+  padding:9px 11px 12px;
+  display:grid; gap:6px;
+  grid-template-columns:repeat(auto-fit, minmax(232px,1fr));
+  grid-auto-rows:min-content;      /* 关键：空槽不被拉伸成整行 */
+  align-content:start;
+}
+.slot{ min-width:0; }
+.slot-empty{
+  min-height:62px; height:62px; gap:2px; font-size:10.5px; border-radius:8px;
+  flex-direction:column;
+}
+.slot-empty .plus{ font-size:15px; line-height:1; }
+
+/* 装了玉的卡：锁定高度，避免不同词条数把行高撑乱 */
+.slot > .jade-card{ height:auto; }
+.slot{ height:min-content; }
+
+/* 玉卡压成 3 段：标题行 / 染元素行 / 2×2 词条格 */
+.jade-card{ border-radius:9px; }
+.jc-head{ padding:5px 6px 4px; gap:6px; align-items:center; }
+.jc-icon-wrap{ width:26px; height:26px; flex:0 0 26px; }
+.jc-icon{ width:26px; height:26px; border-radius:6px; }
+.jc-el-badge{ width:13px; height:13px; }
+.jc-title{ min-width:0; gap:1px; }
+.jc-name-row{ gap:3px; }
+.jc-name{ font-size:11.5px; }
+.jc-meta{ display:none; }                 /* 评分/槽位序 —— 抽屉里有 */
+.jc-remove{ width:18px; height:18px; font-size:10px; flex:0 0 18px; }
+.jc-brief, .jc-effect{ display:none; }    /* 玉详情进右侧抽屉 */
+
+.jc-imbue{ padding:0 6px 3px; gap:3px; flex-wrap:nowrap; align-items:center; height:19px; }
+.imbue-label{ font-size:9.5px; flex:0 0 auto; }
+.imbue-btn{
+  padding:1px 5px; font-size:9.5px; border-radius:5px;
+  flex:0 0 auto; min-width:0; gap:2px;
+}
+.imbue-btn .el-icon{ width:10px; height:10px; }
+.imbue-hint{ font-size:9.5px; }
+
+/* 4 格词条 → 2×2 */
+.jc-sub-area{
+  padding:0 6px 6px; display:grid; gap:3px;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+}
+.sub-title{ display:none; }
+.sub-title .tag{ display:none; }
+.sub-count{ font-size:9.5px; }
+.sub-row{
+  grid-template-columns:minmax(0,1fr) 30px; gap:2px; align-items:center;
+  padding:1px 0;
+}
+.sub-select{ font-size:9.5px; padding:1px 2px; border-radius:4px; min-width:0; }
+.sub-num{ font-size:9.5px; padding:1px 2px; border-radius:4px; width:100%; }
+.sub-val{ display:none; }                 /* 满值提示移到抽屉 */
+.sub-num-ph{ display:none; }
+.rare-desc{ grid-column:1 / -1; display:none; }
+
+/* 配置页右栏：玉详情 + 参数，用折叠块 */
+.drawer-tabs{ display:flex; gap:3px; padding:7px 10px 0; }
+.drawer-tab{
+  flex:1; padding:5px 8px; cursor:pointer; font-size:11px;
+  background:none; border:0; border-radius:7px 7px 0 0;
+  color:var(--text-3); border-bottom:2px solid transparent;
+}
+.drawer-tab.active{ color:var(--accent); border-bottom-color:var(--accent); background:rgba(var(--accent-rgb),.07); }
+.drawer-body{ padding:9px 11px 12px; min-height:0; }
+#drawerJade{ height:100%; }
+
+/* ---------------- 视图 B：结果 ---------------- */
+.view-result.active{ display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); align-items:stretch; }
+.result-hero{
+  padding:11px 13px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  background:linear-gradient(135deg, rgba(var(--accent-rgb),.20), rgba(var(--accent-rgb),.03));
+  border-bottom:1px solid var(--line);
+}
+.result-hero .big{ font-size:29px; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; line-height:1.05; }
+.result-hero .big small{ font-size:11px; color:var(--text-3); font-weight:400; margin-left:3px; }
+.result-hero .idx{ font-size:13px; color:var(--accent); font-variant-numeric:tabular-nums; }
+.result-hero .meta{ font-size:11px; color:var(--text-3); }
+.stat-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(122px,1fr)); gap:5px; }
+.stat-cell{ padding:5px 8px; border-radius:7px; }
+.stat-cell .k{ font-size:10.5px; }
+.stat-cell .v{ font-size:12px; }
+.dmg-table{ gap:4px; }
+.dmg-row{ padding:4px 8px; font-size:11.5px; }
+.dmg-row.hl .v{ font-size:13px; }
+.dmg-total{ margin-top:7px; padding:8px 11px; }
+.dmg-total .num{ font-size:17px; }
+.block-title{ font-size:11.5px; margin-bottom:8px; }
+.stat-block{ padding:9px 12px; }
+.param-grid{ grid-template-columns:repeat(auto-fill,minmax(124px,1fr)); gap:6px; }
+.param-cell input, .param-cell select{ padding:4px 7px; font-size:11.5px; }
+.special-list li{ font-size:11px; }
+.cond-item{ padding:5px 8px; font-size:10.5px; }
+
+/* ---------------- 视图 C：对比 ---------------- */
+.view-compare.active{ display:block; overflow-y:auto; }
+.view-compare > .panel-wrap{
+  display:flex; flex-direction:column; gap:10px; padding:0;
+}
+
+/* ext 面板在单屏布局下的重排 */
+.panel-ext{
+  grid-column:auto; margin:0;
+  border:1px solid var(--line-soft); border-radius:var(--r-lg);
+  background:linear-gradient(180deg, var(--panel), var(--panel-2));
+  overflow:hidden;
+}
+.panel-ext > .panel-head{ padding:8px 12px; }
+.panel-ext > .panel-head h2{ font-size:12px; }
+.nsjx-headstrip{ grid-template-columns:repeat(4,1fr); }
+.nsjx-stat{ padding:7px 12px; }
+.nsjx-stat b{ font-size:14px; }
+.nsjx-body{ grid-template-columns:minmax(240px,1fr) minmax(240px,1fr) minmax(240px,1.1fr); }
+.nsjx-col{ padding:10px 12px 13px; gap:8px; }
+.nsjx-title{ font-size:11.5px; padding-bottom:6px; }
+.nsjx-hist-list{ max-height:220px; }
+.nsjx-rank-list{ max-height:200px; }
+.nsjx-cmp-grid{ gap:12px; }
+.nsjx-metrics{ max-height:340px; overflow-y:auto; }
+
+/* ---------------- 页脚 / 提示 ---------------- */
+.foot{ display:none; }     /* 单屏布局不再需要页脚 */
+.toast{ z-index:400; }
+
+/* ---------------- 窄屏降级 ---------------- */
+@media (max-width: 1100px){
+  .view-build.active{ grid-template-columns:minmax(190px,.8fr) minmax(0,1.4fr) minmax(250px,1fr); }
+  .nsjx-body{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .nsjx-body > .nsjx-col:nth-child(3){ grid-column:1 / -1; }
+}
+
+@media (max-width: 980px){
+  /* 配置页：池 + 槽位 上，抽屉 下 */
+  .view-build.active{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(140px,.9fr) minmax(150px,1fr) minmax(140px,.9fr);
+  }
+  .view-result.active{ grid-template-columns:minmax(0,1fr); grid-template-rows:1fr 1fr; }
+  .nsjx-body{ grid-template-columns:minmax(0,1fr); }
+  .nsjx-cmp-grid{ grid-template-columns:minmax(0,1fr); }
+  .topbar-actions .btn.hide-narrow{ display:none; }
+}
+
+@media (max-width: 680px){
+  .brand-text h1{ font-size:12px; max-width:40vw; overflow:hidden; text-overflow:ellipsis; }
+  .worktab{ padding:6px 10px 8px; font-size:12px; }
+  .worktab-hint{ display:none; }
+  .slots{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .nsjx-headstrip{ grid-template-columns:repeat(2,1fr); }
+  .result-hero .big{ font-size:23px; }
+  .stat-grid{ grid-template-columns:1fr 1fr; }
+}
+
+/* ---------------- 兼容隐藏节点 ---------------- */
+.hidden-compat{
+  position:absolute !important;
+  width:1px; height:1px; overflow:hidden;
+  clip:rect(0 0 0 0); clip-path:inset(50%);
+  white-space:nowrap; border:0; padding:0; margin:0;
+  pointer-events:none; opacity:0;
+}
+
+/* ---------------- 玉详情抽屉（jd-*） ---------------- */
+.jd-head{ display:flex; gap:10px; align-items:center; margin-bottom:9px; }
+.jd-head img{ width:42px; height:42px; border-radius:9px; border:1px solid var(--line-soft); }
+.jd-name{ font-size:13px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.jd-meta{ font-size:10.5px; color:var(--text-3); margin-top:2px; }
+.jd-brief{
+  font-size:11.5px; color:var(--text-2); line-height:1.7;
+  padding:7px 9px; border-radius:8px;
+  background:rgba(var(--accent-rgb),.05); border-left:2px solid var(--line);
+  margin-bottom:8px;
+}
+.jd-bullets{ margin:0 0 8px; padding:0; list-style:none; display:grid; gap:4px; }
+.jd-bullets li{
+  font-size:11px; color:var(--text-2); line-height:1.65;
+  padding-left:13px; position:relative;
+}
+.jd-bullets li::before{
+  content:'◆'; position:absolute; left:0; top:0;
+  font-size:7px; color:var(--accent); line-height:1.9;
+}
+.jd-bullets li.neg{ color:var(--bad); }
+.jd-bullets li.neg::before{ color:var(--bad); }
+.jd-row{
+  display:flex; gap:8px; align-items:baseline; justify-content:space-between;
+  padding:5px 8px; border-radius:7px; font-size:11px;
+  background:rgba(var(--accent-rgb),.04); margin-bottom:8px;
+}
+.jd-row span{ color:var(--text-3); white-space:nowrap; }
+.jd-row b{ color:var(--accent); font-weight:600; text-align:right; }
+.jd-label{ font-size:10px; color:var(--text-3); letter-spacing:.04em; margin-bottom:5px; }
+.jd-subs{ display:grid; gap:3px; margin-bottom:8px; }
+.jd-sub{
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto;
+  gap:7px; align-items:baseline;
+  padding:4px 8px; border-radius:6px; font-size:10.5px;
+  background:rgba(var(--accent-rgb),.03);
+}
+.jd-sub b{ color:var(--accent); font-weight:600; white-space:nowrap; }
+.jd-sub span{ color:var(--text-2); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.jd-sub i{ font-style:normal; color:var(--warn); font-size:10px; white-space:nowrap; }
+.jd-sub.empty span{ color:var(--text-3); }
+.jd-specials{ font-size:10.5px; color:var(--text-3); line-height:1.75; margin-bottom:8px; }
+.jd-specials div{ padding-left:8px; }
+.jd-note{
+  font-size:10.5px; color:var(--text-3); line-height:1.7;
+  padding:6px 9px; border-radius:7px;
+  background:rgba(255,196,107,.07); border-left:2px solid var(--warn);
+}
+
+/* ---------------- 结果页条件加成 ---------------- */
+#condBlock{ display:block; }
+#condEmpty{ margin-top:6px; }
+
+/* ---------------- 窄屏：抽屉高度收紧 ---------------- */
+@media (max-width: 980px){
+  .slots{ grid-template-columns:repeat(auto-fit, minmax(78px,1fr)); }
+  .pool-card{ grid-template-columns:30px minmax(0,1fr) auto; padding:4px 7px; }
+  .pool-card img{ width:30px; height:30px; }
+  .jc-brief, .jc-effect{ display:none; }
+}
+
+/* ---------------- 抽屉欢迎态 ---------------- */
+.jd-welcome{ padding:4px 2px; }
+.jd-welcome-title{ font-size:12px; color:var(--text); font-weight:600; margin-bottom:4px; }
+.jd-welcome-sub{ font-size:10.5px; color:var(--text-3); line-height:1.6; }
+.jd-quicklist{ display:grid; grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); gap:5px; }
+.jd-quick{
+  display:flex; align-items:center; gap:5px; padding:4px 6px; cursor:pointer;
+  background:rgba(var(--accent-rgb),.05); border:1px solid var(--line-soft);
+  border-radius:7px; color:var(--text-2); font-size:10.5px; text-align:left; min-width:0;
+}
+.jd-quick:hover{ background:rgba(var(--accent-rgb),.14); border-color:var(--line); color:var(--accent-text); }
+.jd-quick img{ width:20px; height:20px; border-radius:5px; flex:0 0 20px; }
+.jd-quick span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
