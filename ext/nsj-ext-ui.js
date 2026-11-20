@@ -586,7 +586,76 @@
     }));
   }
 
+  /* ------------------------------------------------------------------
+   * 固定阵容求最优：魂玉与稀有词条数量/位置不变，只把普通词条拉到最优
+   * ------------------------------------------------------------------ */
+  const RARE_IDS = ['hedao', 'huaqi', 'meibu'];
+  const rareSig = slots => (slots || []).filter(Boolean).map(s =>
+    s.jadeId + ':' + (s.subs || []).filter(x => RARE_IDS.includes(x)).sort().join('+')
+  ).join('|');
+
+  async function runSolveLocked() {
+    const bar = $('#extSolveBar');
+    const txt = $('#extSolveText');
+    const cfg = EXT.currentConfig();
+    const before = EXT.metricsOf(cfg);
+    const sigBefore = rareSig(cfg.slots);
+
+    if (txt) txt.textContent = '正在按当前阵容枚举词条…';
+    if (bar) { bar.style.width = '30%'; bar.classList.add('running'); }
+    await new Promise(r => setTimeout(r, 30));
+
+    try {
+      const t0 = Date.now();
+      const r = await EXT.solveLocked(cfg, { allowRareSwap: false, keepElement: true });
+      const after = EXT.metricsOf({ params: r.params, slots: r.slots });
+      const sigAfter = rareSig(r.slots);
+
+      /* 硬校验：玉集合 + 稀有词条多重集一致 */
+      if (sigBefore !== sigAfter) {
+        throw new Error('内部校验失败：魂玉/稀有词条被改动（请反馈）');
+      }
+
+      if (bar) { bar.style.width = '100%'; bar.classList.remove('running'); }
+      const gainPct = before.dps > 0 ? ((after.dps - before.dps) / before.dps) * 100 : 0;
+      const msg = gainPct > 0.01
+        ? `固定阵容已拉满：${EXT.num(before.dps)} → ${EXT.num(after.dps)}（+${EXT.round1(gainPct)}%）`
+        : `当前配装在锁定约束下已是最优（${EXT.num(after.dps)}/s）`;
+      if (txt) txt.textContent = `${msg} · ${r.stats.evals} 次评估 · ${Date.now() - t0}ms`;
+
+      /* 更新榜单（把 locked 结果排进去，方便一键载入对比） */
+      S.ranking = [{
+        rank: 1, tag: '当前阵容·词条拉满',
+        params: r.params, slots: r.slots,
+        metrics: after, dps: after.dps, value: after.dps,
+        sig: EXT.signature({ params: r.params, slots: r.slots }),
+      }].concat(S.ranking || []).map((x, i) => (x.rank = i + 1, x));
+      renderRanking();
+
+      /* 自动记录：加进历史 & 尝试刷新最高记录 */
+      EXT.store.capture({ params: r.params, slots: r.slots }, { force: false, source: 'auto' });
+      const rec = EXT.store.makeRecord(
+        { params: r.params, slots: r.slots },
+        { source: 'solver', label: `当前阵容拉满 · ${EXT.num(after.dps)}/s` });
+      const res = EXT.store.maybeUpdateBest(rec);
+      if (res.replaced) toast(`最高记录更新：${EXT.num(after.dps)}/s`);
+      else toast(msg);
+      renderBest(); renderHistory(); renderHeadStats();
+    } catch (e) {
+      console.error(e);
+      if (bar) { bar.style.width = '0%'; bar.classList.remove('running'); }
+      if (txt) txt.textContent = '出错：' + (e && e.message ? e.message : String(e));
+      toast('求解出错：' + (e && e.message ? e.message : e));
+    }
+  }
+
   let solving = false;
+
+  function syncSolveModeUI() {
+    const mode = $('#extSolveMode');
+    const wrap = $('#extSolveBaseWrap');
+    if (mode && wrap) wrap.style.display = mode.value === 'locked' ? 'none' : '';
+  }
 
   async function runSolve() {
     if (solving) return;
@@ -599,8 +668,9 @@
     if (bar) { bar.style.width = '0%'; bar.classList.add('running'); }
     if (txt) txt.textContent = '正在建立评估器…';
 
-    const mode = ($('#extSolveMode') && $('#extSolveMode').value) || 'fast';
+    const mode = ($('#extSolveMode') && $('#extSolveMode').value) || 'locked';
     const objective = ($('#extSolveObjective') && $('#extSolveObjective').value) || 'dps';
+    if (mode === 'locked') { await runSolveLocked(); return; }
     const useCurrent = !$('#extSolveBase') || $('#extSolveBase').value === 'current';
     const baseCfg = useCurrent ? EXT.currentConfig()
       : (EXT.store.best ? EXT.store.best.config : EXT.currentConfig());
@@ -722,13 +792,14 @@
                   <option value="score">魂玉评分</option>
                 </select>
               </label>
-              <label class="nsjx-field"><span>力度</span>
+              <label class="nsjx-field"><span>范围</span>
                 <select id="extSolveMode">
-                  <option value="fast">快速（约 5~20 秒）</option>
-                  <option value="deep">深度（全武器 + 4~8 槽，1~3 分钟）</option>
+                  <option value="locked">只调当前配装（秒回，推荐）</option>
+                  <option value="fast">全库快速（约 10~20 秒）</option>
+                  <option value="deep">全库深度（全武器，1~3 分钟）</option>
                 </select>
               </label>
-              <label class="nsjx-field"><span>基准参数</span>
+              <label class="nsjx-field" id="extSolveBaseWrap"><span>基准参数</span>
                 <select id="extSolveBase">
                   <option value="current">用当前计算参数</option>
                   <option value="best">用最高记录的参数</option>
@@ -778,6 +849,9 @@
       toast('历史已清空');
     });
     $('#extSolveBtn').addEventListener('click', runSolve);
+    const sm = $('#extSolveMode');
+    if (sm) sm.addEventListener('change', syncSolveModeUI);
+    syncSolveModeUI();
   }
 
   /* ------------------------------------------------------------------ *

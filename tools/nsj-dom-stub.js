@@ -132,6 +132,7 @@ const DEFAULT_SCRIPTS = [
   'ext/nsj-ext-core.js',
   'ext/nsj-ext-store.js',
   'ext/nsj-ext-optimizer.js',
+  'ext/nsj-ext-locked.js',
 ];
 
 /** 建一个独立的沙箱并加载脚本；opts.storage 可传入 Map 复用 localStorage */
