@@ -607,7 +607,10 @@
 
     try {
       const t0 = Date.now();
-      const r = await EXT.solveLocked(cfg, { allowRareSwap: false, keepElement: true });
+      const r = await EXT.solveLocked(cfg, {
+        allowRareSwap: false, keepElement: true,
+        allowedAffixes: EXT.autoAnalysis ? EXT.autoAnalysis.getAllowed() : undefined,
+      });
       const after = EXT.metricsOf({ params: r.params, slots: r.slots });
       const sigAfter = rareSig(r.slots);
 
@@ -670,7 +673,15 @@
 
     const mode = ($('#extSolveMode') && $('#extSolveMode').value) || 'locked';
     const objective = ($('#extSolveObjective') && $('#extSolveObjective').value) || 'dps';
-    if (mode === 'locked') { await runSolveLocked(); return; }
+    if (mode === 'locked') {
+      try { await runSolveLocked(); }
+      finally {
+        solving = false;
+        if (btn) { btn.disabled = false; btn.textContent = '求最优'; }
+        if (bar) bar.classList.remove('running');
+      }
+      return;
+    }
     const useCurrent = !$('#extSolveBase') || $('#extSolveBase').value === 'current';
     const baseCfg = useCurrent ? EXT.currentConfig()
       : (EXT.store.best ? EXT.store.best.config : EXT.currentConfig());

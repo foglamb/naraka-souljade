@@ -21,7 +21,7 @@
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
 
-  const state = { view: 'build', drawer: 'jade', lastJadeId: null };
+  const state = { view: 'build', drawer: 'analysis', lastJadeId: null };
 
   function toast(msg) {
     if (EXT && EXT.ui && EXT.ui.toast) return EXT.ui.toast(msg);
@@ -84,7 +84,7 @@
   function setDrawer(name) {
     state.drawer = name;
     $$('.drawer-tab').forEach(b => b.classList.toggle('active', b.dataset.drawer === name));
-    const map = { jade: '#drawerJade', param: '#drawerParam', cond: '#drawerCond' };
+    const map = { analysis: '#drawerAnalysis', jade: '#drawerJade', param: '#drawerParam', cond: '#drawerCond' };
     Object.keys(map).forEach(k => {
       const el = $(map[k]);
       if (el) el.style.display = (k === name) ? '' : 'none';
@@ -98,7 +98,7 @@
 
   function initDrawer() {
     $$('.drawer-tab').forEach(b => b.addEventListener('click', () => setDrawer(b.dataset.drawer)));
-    setDrawer('jade');
+    setDrawer('analysis');
   }
 
   /* ------------------------------------------------------------------ *
