@@ -1,5 +1,9 @@
 # 永劫无间 · 征神之路 魂玉配装工具
 
+**在线使用 → <https://foglamb.github.io/naraka-souljade/>**
+
+[![Deploy static site to Pages](https://github.com/foglamb/naraka-souljade/actions/workflows/pages.yml/badge.svg)](https://github.com/foglamb/naraka-souljade/actions/workflows/pages.yml)
+
 一个**纯静态**网页（无需服务器、无需构建、无依赖），用于搭配征神之路魂玉、
 汇总面板属性，并估算配装的期望伤害。自适应桌面 / 平板 / 手机，界面主色调可自定义。
 
