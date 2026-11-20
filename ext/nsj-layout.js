@@ -54,6 +54,7 @@
     if (hint) hint.textContent = VIEW_HINT[v] || '';
     /* 上游的移动端 data-tab 也同步，避免它的 syncTabs 把我们的视图关掉 */
     document.body.dataset.tab = v;
+    document.body.dataset.view = v;
     if (persist !== false) {
       try { localStorage.setItem(VIEW_KEY, v); } catch (e) { /* 忽略 */ }
     }
@@ -89,11 +90,30 @@
       const el = $(map[k]);
       if (el) el.style.display = (k === name) ? '' : 'none';
     });
+    if (global.matchMedia && global.matchMedia('(max-width: 980px)').matches) setBuildPane('analysis');
     if (name === 'param') {
       /* 参数面板里的控件是上游 renderParams 生成的，切过来时同步一次选中值 */
       const sc = $('#slotCountSelect');
       if (sc && global.NarakaSoulJade) sc.value = String(global.NarakaSoulJade.state.params.slotCount);
     }
+  }
+
+  function setBuildPane(name) {
+    if (!['pool', 'slots', 'analysis'].includes(name)) name = 'analysis';
+    document.body.dataset.buildPane = name;
+    $$('.mobile-build-tabs [data-build-pane]').forEach(button => {
+      const active = button.dataset.buildPane === name;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+  }
+  function initMobilePanes() {
+    $$('.mobile-build-tabs [data-build-pane]').forEach(button => button.addEventListener('click', () => {
+      setBuildPane(button.dataset.buildPane);
+      if (button.dataset.buildPane === 'analysis') setDrawer('analysis');
+    }));
+    const equipped = global.NarakaSoulJade.state.slots.some(slot => slot && slot.jadeId);
+    setBuildPane(equipped ? 'analysis' : 'pool');
   }
 
   function initDrawer() {
@@ -285,6 +305,7 @@
     }
     initTabs();
     initDrawer();
+    initMobilePanes();
     initMore();
     watchDom();
     hookJadeClick();
@@ -326,5 +347,5 @@
     setTimeout(tick, 80);
   }
 
-  global.NSJLayout = { setView, setDrawer, refreshHero, renderJadeDrawer };
+  global.NSJLayout = { setView, setDrawer, setBuildPane, refreshHero, renderJadeDrawer };
 })(window);

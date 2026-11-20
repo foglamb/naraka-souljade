@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="ext/nsj-ext.css">
 <link rel="stylesheet" href="ext/nsj-layout.css">
 <link rel="stylesheet" href="ext/nsj-auto-analysis.css">
+<link rel="stylesheet" href="ext/nsj-mobile.css">
 <script>
   /* 首屏渲染前先套用已保存的主题色，避免闪一下默认蓝 */
   (function () {
@@ -23,7 +24,7 @@
   })();
 </script>
 </head>
-<body data-tab="pool">
+<body data-tab="pool" data-view="build" data-build-pane="pool">
 
 <!-- ==================== 顶栏：一行 ==================== -->
 <header class="topbar">
@@ -91,6 +92,12 @@
   <span class="worktab-hint" id="worktabHint">点左侧魂玉 → 中间槽位</span>
 </nav>
 
+<nav class="mobile-build-tabs" aria-label="手机配装步骤">
+  <button type="button" data-build-pane="pool" aria-controls="buildPoolPane" aria-pressed="true" class="active">选魂玉</button>
+  <button type="button" data-build-pane="slots" aria-controls="buildSlotsPane" aria-pressed="false">配装</button>
+  <button type="button" data-build-pane="analysis" aria-controls="buildAnalysisPane" aria-pressed="false">自动分析</button>
+</nav>
+
 <!-- ==================== 工作区 ==================== -->
 <main class="workspace">
 
@@ -98,7 +105,7 @@
   <section class="view view-build active" id="view-build">
 
     <!-- 左：魂玉池 -->
-    <div class="pane">
+    <div class="pane" id="buildPoolPane">
       <div class="pane-head">
         <h2>魂玉池</h2>
         <span class="hint" id="poolCount"></span>
@@ -116,7 +123,7 @@
     </div>
 
     <!-- 中：槽位 -->
-    <div class="pane">
+    <div class="pane" id="buildSlotsPane">
       <div class="pane-head">
         <h2>配装槽位</h2>
         <div class="head-right">
@@ -147,10 +154,10 @@
     </div>
 
     <!-- 右：抽屉（玉详情 / 参数） -->
-    <div class="pane">
+    <div class="pane" id="buildAnalysisPane">
       <div class="pane-head">
         <h2>勾选词条 · 自动分析</h2>
-        <span class="hint">不换玉 · 不增加稀有词条</span>
+        <span class="hint">魂玉不变 · 稀有数量由你定</span>
       </div>
       <div class="drawer-tabs" id="drawerTabs">
         <button class="drawer-tab active" data-drawer="analysis" type="button">勾选分析</button>
@@ -250,6 +257,7 @@
 <script src="ext/nsj-ext-store.js"></script>
 <script src="ext/nsj-ext-optimizer.js"></script>
 <script src="ext/nsj-ext-locked.js"></script>
+<script src="ext/nsj-rare-analysis.js"></script>
 <script src="ext/nsj-layout.js"></script>
 <script src="ext/nsj-ext-ui.js"></script>
 <script src="ext/nsj-auto-analysis.js"></script>

@@ -607,16 +607,18 @@
 
     try {
       const t0 = Date.now();
-      const r = await EXT.solveLocked(cfg, {
+      const counted = EXT.autoAnalysis && typeof EXT.autoAnalysis.getRareCounts === 'function';
+      const options = {
         allowRareSwap: false, keepElement: true,
         allowedAffixes: EXT.autoAnalysis ? EXT.autoAnalysis.getAllowed() : undefined,
-      });
+      };
+      if (counted) options.rareCounts = EXT.autoAnalysis.getRareCounts();
+      const r = await (counted ? EXT.solveRareCounts(cfg, options) : EXT.solveLocked(cfg, options));
       const after = EXT.metricsOf({ params: r.params, slots: r.slots });
       const sigAfter = rareSig(r.slots);
-
-      /* 硬校验：玉集合 + 稀有词条多重集一致 */
-      if (sigBefore !== sigAfter) {
-        throw new Error('内部校验失败：魂玉/稀有词条被改动（请反馈）');
+      const checks = counted ? EXT.verifyRareCounts(cfg.slots, r.slots, r.allowedAffixes, options.rareCounts) : null;
+      if ((checks && !checks.ok) || (!counted && sigBefore !== sigAfter)) {
+        throw new Error('内部校验失败：魂玉或稀有词条数量不符');
       }
 
       if (bar) { bar.style.width = '100%'; bar.classList.remove('running'); }
