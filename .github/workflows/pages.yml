@@ -1,0 +1,51 @@
+# =============================================================================
+# 纯静态站：GitHub Pages 自动部署
+# push 到 main 即构建并发布，产物地址 = https://<user>.github.io/<repo>/
+# 仓库里没有构建步骤，直接把根目录当静态站点上传
+# =============================================================================
+name: Deploy static site to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true          # 首次运行自动开启 Pages，免手工点设置
+
+      - name: Sanity check (no build step, just verify entry exists)
+        run: |
+          test -f index.html || { echo "index.html 缺失"; exit 1; }
+          test -f ext/nsj-ext-core.js || { echo "二改扩展缺失"; exit 1; }
+          echo "静态文件清单："
+          ls -1 *.html *.js *.css | sed 's/^/  /'
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
