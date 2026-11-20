@@ -675,7 +675,8 @@
    * ------------------------------------------------------------------ */
   function ensurePanel() {
     if ($('#panel-ext')) return;
-    const layout = $('.layout');
+    /* v2.1 单屏布局把扩展挂进 #extMount；旧长页回退到 .layout */
+    const layout = $('#extMount') || $('.layout');
     if (!layout) return;
 
     const sec = document.createElement('section');
@@ -747,8 +748,8 @@
     `;
     layout.appendChild(sec);
 
-    /* 移动端标签页补一个入口 */
-    const tabs = $('#tabs');
+    /* 旧长页的移动端标签页补一个入口（单屏布局已有工作标签，跳过） */
+    const tabs = $('#extMount') ? null : $('#tabs');
     if (tabs && !tabs.querySelector('[data-tab="ext"]')) {
       const b = document.createElement('button');
       b.type = 'button';

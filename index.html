@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d0f14">
-<title>永劫无间 · 征神之路 魂玉配装工具</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>永劫无间 · 征神之路 魂玉配装器</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="ext/nsj-ext.css">
+<link rel="stylesheet" href="ext/nsj-layout.css">
 <script>
   /* 首屏渲染前先套用已保存的主题色，避免闪一下默认蓝 */
   (function () {
@@ -24,12 +24,13 @@
 </head>
 <body data-tab="pool">
 
+<!-- ==================== 顶栏：一行 ==================== -->
 <header class="topbar">
   <div class="brand">
     <div class="logo">魂</div>
     <div class="brand-text">
       <h1>征神之路 · 魂玉配装器</h1>
-      <p class="sub">永劫无间 · 魂玉搭配 / 属性质变汇总 / 期望伤害估算</p>
+      <p class="sub">永劫无间</p>
     </div>
   </div>
   <div class="topbar-actions">
@@ -60,142 +61,192 @@
       </div>
     </div>
     <div class="menu-wrap">
-      <button class="btn" id="btnPreset" type="button">推荐配装 ▾</button>
+      <button class="btn" id="btnPreset" type="button">推荐 ▾</button>
       <div class="menu" id="presetMenu"></div>
     </div>
-    <button class="btn" id="btnSave" type="button" title="给当前配装起名并保存到本机">保存</button>
+    <button class="btn" id="btnSave" type="button" title="给当前配装起名并保存">保存</button>
     <div class="menu-wrap">
-      <button class="btn" id="btnBuilds" type="button">我的配装<span class="cnt" id="buildCount">0</span></button>
+      <button class="btn" id="btnBuilds" type="button">存档<span class="cnt" id="buildCount">0</span></button>
       <div class="menu" id="buildMenu"></div>
     </div>
-    <button class="btn" id="btnExport" type="button" title="导出配装 JSON">导出</button>
-    <button class="btn" id="btnImport" type="button" title="导入配装 JSON">导入</button>
-    <button class="btn btn-danger" id="btnClear" type="button">清空</button>
+    <div class="more-wrap">
+      <button class="btn" id="btnMore" type="button" title="更多">⋯</button>
+      <div class="more-menu" id="moreMenu">
+        <button type="button" id="btnExport">导出 / 分享</button>
+        <button type="button" id="btnImport">导入</button>
+        <hr>
+        <button type="button" class="danger" id="btnClear">清空配装</button>
+      </div>
+    </div>
   </div>
 </header>
 
-<nav class="tabs" id="tabs" role="tablist">
-  <button class="tab" data-tab="pool"    type="button">魂玉池</button>
-  <button class="tab" data-tab="build"   type="button">配装 <span class="tab-badge" id="tabBuildBadge">0</span></button>
-  <button class="tab" data-tab="stats"   type="button">属性 / 期望</button>
+<!-- ==================== 工作标签 ==================== -->
+<nav class="worktabs" id="worktabs">
+  <button class="worktab active" data-view="build" type="button">① 配置<span class="badge" id="tabBuildBadge">0</span></button>
+  <button class="worktab" data-view="result" type="button">② 结果</button>
+  <button class="worktab" data-view="compare" type="button">③ 对比 · 最优<span class="badge" id="tabExtBadge">0</span></button>
+  <span class="worktab-spacer"></span>
+  <span class="worktab-hint" id="worktabHint">点左侧魂玉 → 中间槽位</span>
 </nav>
 
-<main class="layout">
+<!-- ==================== 工作区 ==================== -->
+<main class="workspace">
 
-  <!-- ==================== 魂玉池 ==================== -->
-  <section class="panel panel-pool" id="panel-pool">
-    <div class="panel-head">
-      <h2>魂玉池</h2>
-      <span class="panel-hint" id="poolCount"></span>
-    </div>
+  <!-- ---------- 视图 ①：配置 ---------- -->
+  <section class="view view-build active" id="view-build">
 
-    <div class="pool-tools">
-      <div class="search-wrap">
-        <span class="search-icon">⌕</span>
-        <input id="searchInput" type="search" placeholder="搜索魂玉 / 词条 / 效果…" autocomplete="off">
+    <!-- 左：魂玉池 -->
+    <div class="pane">
+      <div class="pane-head">
+        <h2>魂玉池</h2>
+        <span class="hint" id="poolCount"></span>
       </div>
-      <div class="chips" id="filterChips"></div>
-    </div>
-
-    <div class="pool-list" id="poolList"></div>
-  </section>
-
-  <!-- ==================== 配装 ==================== -->
-  <section class="panel panel-build" id="panel-build">
-    <div class="panel-head">
-      <h2>配装方案</h2>
-      <div class="head-right">
-        <label class="inline-field">
-          <span>槽位</span>
-          <select id="slotCountSelect">
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-          </select>
-        </label>
-        <label class="inline-field">
-          <span>全体染元素</span>
-          <select id="imbueAllSelect">
-            <option value="keep">保持不变</option>
-            <option value="thunder">全部染雷</option>
-            <option value="ice">全部染冰</option>
-            <option value="poison">全部染毒</option>
-            <option value="none">清除全部</option>
-          </select>
-        </label>
-        <span class="panel-hint" id="buildSummary"></span>
+      <div class="pool-tools">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input id="searchInput" type="search" placeholder="搜索魂玉…" autocomplete="off">
+        </div>
+        <div class="chips" id="filterChips"></div>
+      </div>
+      <div class="pane-body">
+        <div class="pool-list" id="poolList"></div>
       </div>
     </div>
 
-    <div class="slots" id="slots"></div>
-
-    <div class="build-foot">
-      <p class="tip">点击左侧魂玉池中的魂玉即可佩戴；也可直接把魂玉拖到槽位上。</p>
-      <p class="tip">每颗魂玉固定 <b>4 个词条槽位</b>（普通词条与稀有词条共用），并可单独<b>染元素</b>。</p>
+    <!-- 中：槽位 -->
+    <div class="pane">
+      <div class="pane-head">
+        <h2>配装槽位</h2>
+        <div class="head-right">
+          <label class="inline-field">
+            <span>槽位</span>
+            <select id="slotCountSelect">
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+            </select>
+          </label>
+          <label class="inline-field">
+            <span>全体染元素</span>
+            <select id="imbueAllSelect">
+              <option value="keep">不变</option>
+              <option value="thunder">雷</option>
+              <option value="ice">冰</option>
+              <option value="poison">毒</option>
+              <option value="none">清除</option>
+            </select>
+          </label>
+          <span class="hint" id="buildSummary" title="点左边魂玉即佩戴；每颗玉 4 格词条，可单独染元素"></span>
+        </div>
+      </div>
+      <div class="slots" id="slots"></div>
     </div>
+
+    <!-- 右：抽屉（玉详情 / 参数） -->
+    <div class="pane">
+      <div class="pane-head">
+        <h2>详情 · 参数</h2>
+        <span class="hint">改这里最省事</span>
+      </div>
+      <div class="drawer-tabs" id="drawerTabs">
+        <button class="drawer-tab active" data-drawer="jade" type="button">魂玉说明</button>
+        <button class="drawer-tab" data-drawer="param" type="button">计算参数</button>
+        <button class="drawer-tab" data-drawer="cond" type="button">条件加成</button>
+      </div>
+      <div class="pane-body">
+        <div class="drawer-body" id="drawerJade">
+          <div class="nsjx-empty small">点中间某颗玉的标题，这里显示它的完整效果与词条说明。</div>
+        </div>
+        <div class="drawer-body" id="drawerParam" style="display:none">
+          <div class="param-grid" id="paramGrid"></div>
+        </div>
+        <div class="drawer-body" id="drawerCond" style="display:none">
+          <div id="condBlock" style="display:none">
+            <div class="cond-list" id="condList"></div>
+          </div>
+          <div class="nsjx-empty small" id="condEmpty">当前配装没有条件加成。</div>
+        </div>
+      </div>
+    </div>
+
   </section>
 
-  <!-- ==================== 属性 / 期望 ==================== -->
-  <section class="panel panel-stats" id="panel-stats">
-    <div class="panel-head">
-      <h2>属性与期望伤害</h2>
-      <span class="panel-hint" id="scoreSummary"></span>
+  <!-- ---------- 视图 ②：结果 ---------- -->
+  <section class="view view-result" id="view-result">
+
+    <!-- 左：总览 -->
+    <div class="pane">
+      <div class="pane-head">
+        <h2>期望伤害</h2>
+        <span class="hint" id="scoreSummary"></span>
+      </div>
+      <div class="result-hero">
+        <div>
+          <div class="meta">综合期望伤害 · 每秒</div>
+          <div class="big"><span id="heroDps">—</span><small>/秒</small></div>
+        </div>
+        <div>
+          <div class="meta">相对基准</div>
+          <div class="idx" id="baselineValue">—</div>
+        </div>
+      </div>
+      <div class="pane-body">
+        <div class="stat-block">
+          <h3 class="block-title">期望伤害明细</h3>
+          <div class="dmg-table" id="dmgTable"></div>
+        </div>
+        <div class="stat-block">
+          <h3 class="block-title">面板属性总览</h3>
+          <div class="stat-grid" id="statGrid"></div>
+        </div>
+      </div>
     </div>
 
-    <div class="stat-block">
-      <h3 class="block-title">面板属性总览</h3>
-      <div class="stat-grid" id="statGrid"></div>
+    <!-- 右：特殊效果 + 公式 -->
+    <div class="pane">
+      <div class="pane-head">
+        <h2>机制 · 说明</h2>
+        <span class="hint">未计入数值</span>
+      </div>
+      <div class="pane-body">
+        <div class="stat-block" id="specialBlock">
+          <h3 class="block-title">已激活特殊效果</h3>
+          <ul class="special-list" id="specialList"></ul>
+        </div>
+        <details class="stat-block collapsible">
+          <summary class="block-title">计算公式说明</summary>
+          <div class="formula-note" id="formulaNote"></div>
+        </details>
+      </div>
     </div>
 
-    <div class="stat-block">
-      <h3 class="block-title">期望伤害明细</h3>
-      <div class="dmg-table" id="dmgTable"></div>
-      <div class="dmg-total" id="dmgTotal"></div>
-    </div>
+  </section>
 
-    <div class="stat-block" id="specialBlock">
-      <h3 class="block-title">已激活特殊效果 <span class="muted">（未计入数值）</span></h3>
-      <ul class="special-list" id="specialList"></ul>
-    </div>
-
-    <div class="stat-block" id="condBlock" style="display:none">
-      <h3 class="block-title">条件加成 <span class="muted">（勾选 = 条件已满足，计入伤害）</span></h3>
-      <div class="cond-list" id="condList"></div>
-    </div>
-
-    <details class="stat-block collapsible" open>
-      <summary class="block-title">计算参数 <span class="muted">（可自行调整基准值）</span></summary>
-      <div class="param-grid" id="paramGrid"></div>
-    </details>
-
-    <details class="stat-block collapsible">
-      <summary class="block-title">计算公式说明</summary>
-      <div class="formula-note" id="formulaNote"></div>
-    </details>
-
-    <div class="baseline-strip">
-      <div class="baseline-label">相对基准（未佩戴魂玉 = 100）</div>
-      <div class="baseline-value" id="baselineValue">—</div>
-    </div>
+  <!-- ---------- 视图 ③：对比 · 最优 ---------- -->
+  <section class="view view-compare" id="view-compare">
+    <div class="panel-wrap" id="extMount"></div>
   </section>
 
 </main>
 
-<footer class="foot">
-  <span>数据来源：游戏内魂玉截图人工录入，词条均为满数值。</span>
-  <span>伤害为<b>模型估算</b>，用于横向对比配装强度，不代表游戏内实际数值。</span>
-</footer>
-
-<div class="toast" id="toast"></div>
+<!-- 隐藏的兼容节点：上游 JS 会写这些 id，保留但不可见 -->
+<div id="dmgTotal" class="hidden-compat"></div>
+<div id="panel-pool" style="display:none"></div>
+<div id="panel-build" style="display:none"></div>
+<div id="panel-stats" style="display:none"></div>
+<div id="tabs" style="display:none"></div>
+<div id="toast" class="toast"></div>
 
 <script src="data.js"></script>
 <script src="app.js"></script>
-<!-- 二改扩展：历史快照 / 差异对比 / 自动最优（纯前端，无后端） -->
+<!-- 二改扩展：单屏布局 / 历史快照 / 差异对比 / 自动最优 -->
 <script src="ext/nsj-ext-core.js"></script>
 <script src="ext/nsj-ext-store.js"></script>
 <script src="ext/nsj-ext-optimizer.js"></script>
+<script src="ext/nsj-layout.js"></script>
 <script src="ext/nsj-ext-ui.js"></script>
 </body>
 </html>
