@@ -44,6 +44,11 @@ jobs:
           echo "静态文件清单："
           ls -1 *.html *.js *.css ext/* | sed 's/^/  /'
 
+      - name: Check automatic checkbox analysis
+        run: |
+          for f in ext/*.js; do node --check "$f"; done
+          node tools/nsj-analysis-test.js
+
       - name: Assemble site (只挑站点需要的文件)
         run: |
           set -e

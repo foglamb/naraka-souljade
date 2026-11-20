@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="ext/nsj-ext.css">
 <link rel="stylesheet" href="ext/nsj-layout.css">
+<link rel="stylesheet" href="ext/nsj-auto-analysis.css">
 <script>
   /* 首屏渲染前先套用已保存的主题色，避免闪一下默认蓝 */
   (function () {
@@ -148,16 +149,18 @@
     <!-- 右：抽屉（玉详情 / 参数） -->
     <div class="pane">
       <div class="pane-head">
-        <h2>详情 · 参数</h2>
-        <span class="hint">改这里最省事</span>
+        <h2>勾选词条 · 自动分析</h2>
+        <span class="hint">不换玉 · 不增加稀有词条</span>
       </div>
       <div class="drawer-tabs" id="drawerTabs">
-        <button class="drawer-tab active" data-drawer="jade" type="button">魂玉说明</button>
+        <button class="drawer-tab active" data-drawer="analysis" type="button">勾选分析</button>
+        <button class="drawer-tab" data-drawer="jade" type="button">魂玉说明</button>
         <button class="drawer-tab" data-drawer="param" type="button">计算参数</button>
         <button class="drawer-tab" data-drawer="cond" type="button">条件加成</button>
       </div>
       <div class="pane-body">
-        <div class="drawer-body" id="drawerJade">
+        <div class="drawer-body" id="drawerAnalysis"></div>
+        <div class="drawer-body" id="drawerJade" style="display:none">
           <div class="nsjx-empty small">点中间某颗玉的标题，这里显示它的完整效果与词条说明。</div>
         </div>
         <div class="drawer-body" id="drawerParam" style="display:none">
@@ -249,5 +252,6 @@
 <script src="ext/nsj-ext-locked.js"></script>
 <script src="ext/nsj-layout.js"></script>
 <script src="ext/nsj-ext-ui.js"></script>
+<script src="ext/nsj-auto-analysis.js"></script>
 </body>
 </html>
